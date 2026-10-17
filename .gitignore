@@ -1,0 +1,16 @@
+node_modules/
+dist/
+build/
+coverage/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+client/test-results/
+client/playwright-report/
+client/blob-report/
+server/src/generated/
+.vercel/
+.pgdata/
+.dev-admin.txt

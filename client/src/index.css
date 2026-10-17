@@ -1,0 +1,9 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, 'Segoe UI', Roboto, sans-serif;
+}
+
+body {
+  @apply bg-stone-50 text-stone-900 antialiased;
+}

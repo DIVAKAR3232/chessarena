@@ -1,0 +1,48 @@
+# Render Blueprint: one web service (API + Socket.IO + website on one URL) and a managed
+# PostgreSQL database. Deploy via Render Dashboard → New → Blueprint → select this repository.
+# See docs/DEPLOYMENT.md for the full walkthrough.
+
+databases:
+  - name: chessarena-db
+    plan: free
+    databaseName: chessarena
+    user: chessarena
+    # No public IP allow-list: only services in this Render account can connect.
+    ipAllowList: []
+
+services:
+  - type: web
+    name: chessarena
+    runtime: node
+    plan: free
+    # Dev dependencies (TypeScript, Vite, Prisma CLI) are needed to build and migrate.
+    buildCommand: npm ci --include=dev && npm run build
+    # Applies pending migrations (never resets data), creates the first admin if configured, then starts.
+    startCommand: npm run start:prod
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SERVE_CLIENT
+        value: 'true'
+      - key: TRUST_PROXY
+        value: '1'
+      - key: LOG_LEVEL
+        value: info
+      - key: DATABASE_URL
+        fromDatabase:
+          name: chessarena-db
+          property: connectionString
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_SOCKET_SECRET
+        generateValue: true
+      # First administrator, created on the first start only. Render asks for these values
+      # when you create the Blueprint; they are never stored in the repository.
+      - key: ADMIN_USERNAME
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      # CLIENT_ORIGIN / APP_URL default to Render's public URL automatically. Set them only
+      # when you add a custom domain (e.g. https://chess.example.com).

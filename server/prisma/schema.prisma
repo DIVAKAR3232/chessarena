@@ -1,0 +1,545 @@
+// ChessArena database schema (PostgreSQL).
+// Aggregate player statistics (games/wins/losses/draws) are computed from Match rows;
+// PlayerProfile.rating is only written by the result-finalization transaction.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  COORDINATOR
+  PLAYER
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+  DISABLED
+}
+
+enum MatchStatus {
+  CREATED
+  WAITING
+  READY
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  ABANDONED
+  DISPUTED
+}
+
+enum MatchResult {
+  WHITE_WIN
+  BLACK_WIN
+  DRAW
+  NO_RESULT
+}
+
+enum TerminationReason {
+  CHECKMATE
+  RESIGNATION
+  TIMEOUT
+  TIMEOUT_VS_INSUFFICIENT_MATERIAL
+  STALEMATE
+  INSUFFICIENT_MATERIAL
+  THREEFOLD_REPETITION
+  FIVEFOLD_REPETITION
+  FIFTY_MOVE_RULE
+  SEVENTY_FIVE_MOVE_RULE
+  DRAW_AGREEMENT
+  ABANDONMENT
+  CANCELLED
+  ADMIN_DECISION
+  BYE
+}
+
+enum PlayerColor {
+  WHITE
+  BLACK
+}
+
+enum MatchSource {
+  CHALLENGE
+  MATCHMAKING
+  COORDINATOR
+  TOURNAMENT
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  CANCELLED
+}
+
+enum DrawOfferStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  WITHDRAWN
+  EXPIRED
+}
+
+enum TournamentFormat {
+  ROUND_ROBIN
+  SINGLE_ELIMINATION
+}
+
+enum TournamentStatus {
+  DRAFT
+  PUBLISHED
+  REGISTRATION_OPEN
+  REGISTRATION_CLOSED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum RegistrationStatus {
+  REGISTERED
+  WITHDRAWN
+  REMOVED
+  ELIMINATED
+}
+
+enum RoundStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED_UPHELD
+  RESOLVED_CORRECTED
+  REJECTED
+}
+
+enum NotificationType {
+  MATCH_INVITATION
+  MATCH_ASSIGNED
+  MATCH_STARTED
+  MATCH_RESULT
+  MATCH_CANCELLED
+  DRAW_OFFER
+  TOURNAMENT_REGISTRATION
+  TOURNAMENT_ANNOUNCEMENT
+  TOURNAMENT_PAIRINGS
+  DISPUTE_UPDATE
+  ACCOUNT
+  SYSTEM
+}
+
+model User {
+  id            String        @id @default(cuid())
+  username      String        @unique @db.VarChar(32)
+  displayName   String        @db.VarChar(64)
+  email         String        @unique @db.VarChar(254)
+  passwordHash  String
+  role          Role          @default(PLAYER)
+  accountStatus AccountStatus @default(ACTIVE)
+  emailVerifiedAt DateTime?
+  lastLoginAt   DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  /// Players may hide their profile from the public (non-authenticated) leaderboard/profile pages.
+  profilePublic Boolean       @default(true)
+  avatar        String?       @db.VarChar(32)
+  notifyByEmail Boolean       @default(false)
+
+  profile             PlayerProfile?
+  sessions            Session[]
+  resetTokens         PasswordResetToken[]
+  coordinatorOf       CoordinatorAssignment[]
+  participations      TournamentParticipant[]
+  whiteMatches        Match[]                 @relation("WhitePlayer")
+  blackMatches        Match[]                 @relation("BlackPlayer")
+  coordinatedMatches  Match[]                 @relation("MatchCoordinator")
+  createdMatches      Match[]                 @relation("MatchCreator")
+  winnerMatches       Match[]                 @relation("MatchWinner")
+  moves               GameMove[]
+  invitationsSent     MatchInvitation[]       @relation("Inviter")
+  invitationsReceived MatchInvitation[]       @relation("Invitee")
+  drawOffers          DrawOffer[]
+  ratingHistory       RatingHistory[]
+  notifications       Notification[]
+  auditLogs           AuditLog[]
+  disputesSubmitted   Dispute[]               @relation("DisputeSubmitter")
+  disputesResolved    Dispute[]               @relation("DisputeResolver")
+  tournamentsCreated  Tournament[]            @relation("TournamentCreator")
+  tournamentsWon      Tournament[]            @relation("TournamentWinner")
+  queueEntry          MatchmakingQueueEntry?
+  announcements       Announcement[]
+
+  @@index([role, accountStatus])
+  @@index([createdAt])
+}
+
+model PlayerProfile {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  rating     Int      @default(1200)
+  peakRating Int      @default(1200)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([rating])
+}
+
+model Session {
+  id               String    @id @default(cuid())
+  userId           String
+  refreshTokenHash String    @unique
+  userAgent        String?   @db.VarChar(256)
+  ip               String?   @db.VarChar(64)
+  createdAt        DateTime  @default(now())
+  lastUsedAt       DateTime  @default(now())
+  expiresAt        DateTime
+  revokedAt        DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+}
+
+enum TokenPurpose {
+  RESET_PASSWORD
+  VERIFY_EMAIL
+}
+
+/// Single-use, short-lived tokens (password reset, email verification). Only the SHA-256 hash is stored.
+model PasswordResetToken {
+  id        String       @id @default(cuid())
+  userId    String
+  purpose   TokenPurpose @default(RESET_PASSWORD)
+  tokenHash String       @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  /// Admin who initiated the reset, if any.
+  initiatedById String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model CoordinatorAssignment {
+  id            String   @id @default(cuid())
+  coordinatorId String
+  tournamentId  String
+  assignedAt    DateTime @default(now())
+
+  coordinator User       @relation(fields: [coordinatorId], references: [id], onDelete: Cascade)
+  tournament  Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@unique([coordinatorId, tournamentId])
+  @@index([tournamentId])
+}
+
+model Tournament {
+  id                   String           @id @default(cuid())
+  name                 String           @db.VarChar(120)
+  description          String           @default("") @db.VarChar(4000)
+  format               TournamentFormat
+  status               TournamentStatus @default(DRAFT)
+  /// Base time in ms and increment in ms (e.g. 300000 + 3000 for 5+3).
+  initialTimeMs        Int
+  incrementMs          Int
+  rated                Boolean          @default(true)
+  maxParticipants      Int
+  minParticipants      Int              @default(2)
+  pointsWin            Decimal          @default(1) @db.Decimal(4, 2)
+  pointsDraw           Decimal          @default(0.5) @db.Decimal(4, 2)
+  pointsLoss           Decimal          @default(0) @db.Decimal(4, 2)
+  pointsBye            Decimal          @default(1) @db.Decimal(4, 2)
+  registrationOpensAt  DateTime?
+  registrationClosesAt DateTime?
+  startsAt             DateTime?
+  endsAt               DateTime?
+  winnerId             String?
+  createdById          String
+  cancelReason         String?          @db.VarChar(500)
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  createdBy     User                    @relation("TournamentCreator", fields: [createdById], references: [id])
+  winner        User?                   @relation("TournamentWinner", fields: [winnerId], references: [id])
+  coordinators  CoordinatorAssignment[]
+  participants  TournamentParticipant[]
+  rounds        TournamentRound[]
+  matches       Match[]
+  announcements Announcement[]
+
+  @@index([status, startsAt])
+}
+
+model TournamentParticipant {
+  id                 String             @id @default(cuid())
+  tournamentId       String
+  playerId           String
+  registrationStatus RegistrationStatus @default(REGISTERED)
+  registeredAt       DateTime           @default(now())
+  seed               Int?
+  /// Rating snapshot at registration time; used for seeding.
+  ratingAtRegistration Int              @default(1200)
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  player     User       @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, playerId])
+  @@index([playerId])
+}
+
+model TournamentRound {
+  id           String      @id @default(cuid())
+  tournamentId String
+  roundNumber  Int
+  status       RoundStatus @default(PENDING)
+  startsAt     DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime    @default(now())
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  matches    Match[]
+
+  @@unique([tournamentId, roundNumber])
+}
+
+model Match {
+  id                   String             @id @default(cuid())
+  whitePlayerId        String?
+  blackPlayerId        String?
+  createdById          String
+  tournamentId         String?
+  roundId              String?
+  coordinatorId        String?
+  source               MatchSource
+  status               MatchStatus        @default(CREATED)
+  result               MatchResult?
+  terminationReason    TerminationReason?
+  winnerId             String?
+  rated                Boolean            @default(true)
+  isPrivate            Boolean            @default(false)
+  initialTimeMs        Int
+  incrementMs          Int
+  initialFen           String             @default("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+  currentFen           String             @default("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+  pgn                  String             @default("")
+  currentTurn          PlayerColor        @default(WHITE)
+  whiteTimeRemainingMs Int
+  blackTimeRemainingMs Int
+  turnStartedAt        DateTime?
+  /// Incremented on every accepted state change (move, result). Used for optimistic concurrency.
+  positionVersion      Int                @default(0)
+  /// Bracket slot for single-elimination (0-based within a round); board number for round robin.
+  bracketSlot          Int?
+  /// Round-robin / knockout: true when this match is a bye (no game is played).
+  isBye                Boolean            @default(false)
+  whiteJoinedAt        DateTime?
+  blackJoinedAt        DateTime?
+  scheduledAt          DateTime?
+  startedAt            DateTime?
+  completedAt          DateTime?
+  cancelReason         String?            @db.VarChar(500)
+  notes                String?            @db.VarChar(2000)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  whitePlayer   User?             @relation("WhitePlayer", fields: [whitePlayerId], references: [id])
+  blackPlayer   User?             @relation("BlackPlayer", fields: [blackPlayerId], references: [id])
+  createdBy     User              @relation("MatchCreator", fields: [createdById], references: [id])
+  coordinator   User?             @relation("MatchCoordinator", fields: [coordinatorId], references: [id])
+  winner        User?             @relation("MatchWinner", fields: [winnerId], references: [id])
+  tournament    Tournament?       @relation(fields: [tournamentId], references: [id])
+  round         TournamentRound?  @relation(fields: [roundId], references: [id])
+  moves         GameMove[]
+  invitations   MatchInvitation[]
+  drawOffers    DrawOffer[]
+  ratingChanges RatingHistory[]
+  disputes      Dispute[]
+  notifications Notification[]
+
+  @@index([status])
+  @@index([whitePlayerId, status])
+  @@index([blackPlayerId, status])
+  @@index([tournamentId, roundId])
+  @@index([coordinatorId])
+  @@index([completedAt])
+}
+
+model GameMove {
+  id          String   @id @default(cuid())
+  matchId     String
+  ply         Int
+  playerId    String
+  fromSquare  String   @db.VarChar(2)
+  toSquare    String   @db.VarChar(2)
+  promotion   String?  @db.VarChar(1)
+  san         String   @db.VarChar(10)
+  fenAfter    String
+  /// Mover's remaining clock after the move (increment included).
+  clockAfterMs Int
+  /// Time spent on this move.
+  elapsedMs   Int
+  createdAt   DateTime @default(now())
+
+  match  Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  player User  @relation(fields: [playerId], references: [id])
+
+  @@unique([matchId, ply])
+}
+
+model MatchInvitation {
+  id          String           @id @default(cuid())
+  matchId     String
+  inviterId   String
+  inviteeId   String
+  status      InvitationStatus @default(PENDING)
+  expiresAt   DateTime
+  createdAt   DateTime         @default(now())
+  respondedAt DateTime?
+
+  match   Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  inviter User  @relation("Inviter", fields: [inviterId], references: [id])
+  invitee User  @relation("Invitee", fields: [inviteeId], references: [id])
+
+  @@index([inviteeId, status])
+  @@index([matchId])
+}
+
+model DrawOffer {
+  id                String          @id @default(cuid())
+  matchId           String
+  offeredByPlayerId String
+  /// Ply count at which the offer was made; an offer is valid until the opponent moves.
+  ply               Int
+  status            DrawOfferStatus @default(PENDING)
+  createdAt         DateTime        @default(now())
+  respondedAt       DateTime?
+
+  match     Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  offeredBy User  @relation(fields: [offeredByPlayerId], references: [id])
+
+  @@index([matchId, status])
+}
+
+model RatingHistory {
+  id           String   @id @default(cuid())
+  playerId     String
+  matchId      String
+  ratingBefore Int
+  ratingAfter  Int
+  ratingChange Int
+  /// Set when a dispute correction reverses this entry.
+  reversed     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  player User  @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  match  Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@index([playerId, createdAt])
+  @@index([matchId])
+}
+
+model Notification {
+  id                  String           @id @default(cuid())
+  recipientId         String
+  type                NotificationType
+  title               String           @db.VarChar(160)
+  message             String           @db.VarChar(1000)
+  relatedMatchId      String?
+  relatedTournamentId String?
+  readAt              DateTime?
+  createdAt           DateTime         @default(now())
+
+  recipient User   @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  match     Match? @relation(fields: [relatedMatchId], references: [id], onDelete: SetNull)
+
+  @@index([recipientId, readAt, createdAt])
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  actorId      String?
+  action       String   @db.VarChar(64)
+  resourceType String   @db.VarChar(32)
+  resourceId   String?  @db.VarChar(64)
+  details      Json?
+  createdAt    DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([resourceType, resourceId])
+  @@index([actorId, createdAt])
+  @@index([createdAt])
+}
+
+model Dispute {
+  id                  String        @id @default(cuid())
+  matchId             String
+  submittedByPlayerId String
+  reason              String        @db.VarChar(2000)
+  status              DisputeStatus @default(OPEN)
+  resolution          String?       @db.VarChar(2000)
+  /// Match result before the dispute; used to restore the match status on rejection.
+  originalResult      MatchResult?
+  correctedResult     MatchResult?
+  resolvedByAdminId   String?
+  createdAt           DateTime      @default(now())
+  resolvedAt          DateTime?
+
+  match       Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  submittedBy User  @relation("DisputeSubmitter", fields: [submittedByPlayerId], references: [id])
+  resolvedBy  User? @relation("DisputeResolver", fields: [resolvedByAdminId], references: [id])
+
+  @@index([status, createdAt])
+  @@index([matchId])
+}
+
+model MatchmakingQueueEntry {
+  id            String   @id @default(cuid())
+  /// One queue entry per player (prevents duplicate queueing).
+  userId        String   @unique
+  initialTimeMs Int
+  incrementMs   Int
+  rated         Boolean  @default(true)
+  rating        Int
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([initialTimeMs, incrementMs, rated, createdAt])
+}
+
+model Announcement {
+  id           String   @id @default(cuid())
+  tournamentId String
+  authorId     String
+  title        String   @db.VarChar(160)
+  body         String   @db.VarChar(4000)
+  createdAt    DateTime @default(now())
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  author     User       @relation(fields: [authorId], references: [id])
+
+  @@index([tournamentId, createdAt])
+}
+
+/// Key/value system settings editable by admins (non-secret values only).
+model SystemSetting {
+  key         String   @id @db.VarChar(64)
+  value       Json
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+}
