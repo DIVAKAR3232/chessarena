@@ -20,6 +20,7 @@ import { useAsync } from '../../hooks/useAsync';
 import { del, errorMessage, get, getPaged, post, put } from '../../services/api/client';
 import type { Me, PublicUser } from '../../types/api';
 import { formatDateTime, formatTimeControl, humanize } from '../../utils/format';
+import { useLiveRefresh } from '../../hooks/useLiveRefresh';
 
 const NEXT: Record<TournamentStatus, { to: TournamentStatus; label: string; adminOnly?: boolean; danger?: boolean }[]> = {
   DRAFT: [{ to: 'PUBLISHED', label: 'Publish', adminOnly: true }],
@@ -49,6 +50,7 @@ export function TournamentDetailPage() {
   const standings = useAsync(() => get<StandingRow[]>(`/tournaments/${id}/standings`), [id]);
   const rounds = useAsync(() => get<Round[]>(`/tournaments/${id}/rounds`), [id]);
   const announcements = useAsync(() => get<Announcement[]>(`/tournaments/${id}/announcements`), [id]);
+  useLiveRefresh(() => Promise.all([t.reload(), standings.reload(), rounds.reload()]));
 
   const [addPlayer, setAddPlayer] = useState<PublicUser | null>(null);
   const [removing, setRemoving] = useState<Participant | null>(null);

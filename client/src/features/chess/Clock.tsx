@@ -30,7 +30,7 @@ export function Clock({ ms, running, receivedAt }: { ms: number; running: boolea
       aria-live="off"
       className={cx(
         'min-w-24 rounded-lg px-3 py-1.5 text-right font-mono text-xl font-semibold tabular-nums transition-colors',
-        running ? (low ? 'bg-red-700 text-white' : 'bg-stone-900 text-white') : 'bg-stone-100 text-stone-500',
+        running ? (low ? 'animate-pulse bg-red-700 text-white' : 'bg-green-800 text-white shadow-[0_0_16px_rgba(249,115,22,0.55)]') : 'bg-stone-100 text-stone-500',
       )}
     >
       {formatClock(remaining)}

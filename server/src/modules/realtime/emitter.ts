@@ -24,3 +24,17 @@ export function emitToUser(userId: string, event: string, payload: unknown) {
 export function emitToMatch(matchId: string, event: string, payload: unknown) {
   io?.to(matchRoom(matchId)).emit(event, payload);
 }
+
+/**
+ * Tells every connected client that rankings changed (ratings, removals, corrections).
+ * Coalesced so a burst of results produces a single refresh.
+ */
+let leaderboardTimer: NodeJS.Timeout | null = null;
+export function announceLeaderboardChange() {
+  if (leaderboardTimer) return;
+  leaderboardTimer = setTimeout(() => {
+    leaderboardTimer = null;
+    io?.emit('leaderboard:changed', { at: Date.now() });
+  }, 300);
+  leaderboardTimer.unref?.();
+}

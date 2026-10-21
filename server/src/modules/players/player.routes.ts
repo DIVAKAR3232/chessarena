@@ -10,6 +10,7 @@ import { changePassword } from '../auth/auth.service.js';
 import { matchListSelect, toMatchListItem } from '../matches/match.view.js';
 import { listInvitations } from '../matches/match.service.js';
 import { privateUserSelect, publicUserSelect } from '../users/user.mapper.js';
+import { announceLeaderboardChange } from '../realtime/emitter.js';
 import { leaderboard, rankOf, statsForOne } from './stats.service.js';
 
 export const AVATARS = ['king', 'queen', 'rook', 'bishop', 'knight', 'pawn'] as const;
@@ -61,6 +62,7 @@ const updateMeSchema = z
 playerRouter.patch('/me', requireAuth, async (req, res) => {
   const input = validate(updateMeSchema, req.body);
   const user = await prisma.user.update({ where: { id: getAuth(req).user.id }, data: input, select: privateUserSelect });
+  if (input.displayName !== undefined || input.profilePublic !== undefined) announceLeaderboardChange();
   res.json({ data: { user } });
 });
 

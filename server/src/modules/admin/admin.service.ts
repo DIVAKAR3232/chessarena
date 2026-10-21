@@ -9,7 +9,7 @@ import { forgotPassword, revokeAllSessions } from '../auth/auth.service.js';
 import { hashPassword } from '../auth/password.js';
 import { matchListSelect, toMatchListItem } from '../matches/match.view.js';
 import { statsForOne } from '../players/stats.service.js';
-import { getIo } from '../realtime/emitter.js';
+import { announceLeaderboardChange, getIo } from '../realtime/emitter.js';
 import { privateUserSelect } from '../users/user.mapper.js';
 
 export async function overview() {
@@ -211,6 +211,7 @@ export async function removeUser(admin: Actor, userId: string, reason: string) {
     return { mode: 'deleted' as const, username: target.username };
   });
   disconnectUser(getIo(), userId);
+  announceLeaderboardChange();
   return result;
 }
 
@@ -242,6 +243,7 @@ export async function changeRole(admin: Actor, userId: string, role: Role) {
     return u;
   });
   disconnectUser(getIo(), userId);
+  announceLeaderboardChange();
   return updated;
 }
 
@@ -261,6 +263,7 @@ export async function changeStatus(admin: Actor, userId: string, status: Account
     return u;
   });
   if (status !== 'ACTIVE') disconnectUser(getIo(), userId);
+  announceLeaderboardChange();
   return updated;
 }
 

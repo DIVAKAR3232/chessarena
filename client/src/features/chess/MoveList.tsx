@@ -9,11 +9,14 @@ interface Props {
 }
 
 export function MoveList({ sans, activePly, onSelect }: Props) {
-  const endRef = useRef<HTMLDivElement>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
   const active = activePly ?? sans.length;
 
+  // Keep the newest move visible by scrolling only this list's own box. (scrollIntoView would
+  // also scroll the page, making the board jump on every move.)
   useEffect(() => {
-    if (activePly === undefined) endRef.current?.scrollIntoView({ block: 'nearest' });
+    const box = boxRef.current;
+    if (box && activePly === undefined) box.scrollTop = box.scrollHeight;
   }, [sans.length, activePly]);
 
   if (sans.length === 0) return <p className="px-1 py-4 text-center text-sm text-stone-500">No moves yet</p>;
@@ -34,7 +37,7 @@ export function MoveList({ sans, activePly, onSelect }: Props) {
     ) : null;
 
   return (
-    <div className="max-h-72 overflow-y-auto pr-1" aria-label="Move list">
+    <div ref={boxRef} className="max-h-72 overflow-y-auto overscroll-contain pr-1" aria-label="Move list">
       <table className="w-full">
         <tbody>
           {rows.map((r) => (
@@ -46,7 +49,6 @@ export function MoveList({ sans, activePly, onSelect }: Props) {
           ))}
         </tbody>
       </table>
-      <div ref={endRef} />
     </div>
   );
 }

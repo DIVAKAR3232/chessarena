@@ -7,6 +7,7 @@ import { useAsync } from '../../hooks/useAsync';
 import { get, getPaged } from '../../services/api/client';
 import type { MatchListItem, PlayerStats, PublicUser } from '../../types/api';
 import { formatDateTime } from '../../utils/format';
+import { useLiveRefresh } from '../../hooks/useLiveRefresh';
 
 export function PlayerProfilePage() {
   const { id = '' } = useParams();
@@ -14,6 +15,7 @@ export function PlayerProfilePage() {
   const [page, setPage] = useState(1);
   const profile = useAsync(() => get<PublicUser & { stats: PlayerStats; rank: number | null }>(`/players/${id}`), [id]);
   const games = useAsync(() => getPaged<MatchListItem>(`/players/${id}/matches`, { page, pageSize: 10 }), [id, page]);
+  useLiveRefresh(() => Promise.all([profile.reload(), games.reload()]));
 
   if (profile.loading && !profile.data) return <Spinner />;
   if (profile.error || !profile.data) return <ErrorState message={profile.error ?? 'Not found'} />;

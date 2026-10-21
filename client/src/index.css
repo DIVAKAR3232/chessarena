@@ -1,9 +1,263 @@
 @import 'tailwindcss';
+@import '@fontsource/creepster/400.css';
 
+/*
+ * 🎃 Halloween theme.
+ * The app's components use Tailwind's stone / green / red / amber / sky palettes. Redefining
+ * those scales here re-skins the whole app consistently:
+ *   stone → purple-black night (inverted: 50 = page background, 900 = brightest text)
+ *   white → card surface (deep violet)
+ *   green → pumpkin orange (the accent)
+ *   red   → blood red, amber → candle gold, sky → ghostly slime green
+ */
 @theme {
   --font-sans: ui-sans-serif, system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-spooky: 'Creepster', ui-serif, Georgia, serif;
+
+  --color-white: #1b1129;
+
+  --color-stone-50: #0c0713;
+  --color-stone-100: #170f22;
+  --color-stone-200: #2b1d3d;
+  --color-stone-300: #3e2c55;
+  --color-stone-400: #6f5d8a;
+  --color-stone-500: #9a89b4;
+  --color-stone-600: #b9abd0;
+  --color-stone-700: #d4c9e6;
+  --color-stone-800: #e9e2f4;
+  --color-stone-900: #f6f1fc;
+  --color-stone-950: #fffaf2;
+
+  --color-green-50: #2a1406;
+  --color-green-100: #3a1b07;
+  --color-green-200: #6a3410;
+  --color-green-300: #9a4a12;
+  --color-green-400: #fdba74;
+  --color-green-500: #fb923c;
+  --color-green-600: #fb923c;
+  --color-green-700: #f97316;
+  --color-green-800: #f97316;
+  --color-green-900: #fdba74;
+
+  --color-red-50: #2a0a10;
+  --color-red-100: #3c0f18;
+  --color-red-200: #6b1a2a;
+  --color-red-300: #8f2236;
+  --color-red-400: #f87171;
+  --color-red-500: #ef4444;
+  --color-red-600: #f87171;
+  --color-red-700: #ef4444;
+  --color-red-800: #fca5a5;
+  --color-red-900: #fecaca;
+
+  --color-amber-50: #2a2006;
+  --color-amber-200: #6b5212;
+  --color-amber-500: #f59e0b;
+  --color-amber-700: #fbbf24;
+  --color-amber-800: #fcd34d;
+
+  --color-sky-50: #062a22;
+  --color-sky-200: #0f5c4a;
+  --color-sky-800: #6ee7b7;
+
+  --animate-float: ghost-float 7s ease-in-out infinite;
+  --animate-glow: pumpkin-glow 2.6s ease-in-out infinite;
+  --animate-page-in: page-in 0.35s ease-out both;
+}
+
+:root {
+  color-scheme: dark;
 }
 
 body {
   @apply bg-stone-50 text-stone-900 antialiased;
+  background-image:
+    radial-gradient(1200px 600px at 85% -10%, rgba(249, 115, 22, 0.12), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(126, 58, 242, 0.18), transparent 60%);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+h1,
+.font-spooky {
+  font-family: var(--font-spooky);
+  letter-spacing: 0.03em;
+  font-weight: 400;
+}
+
+h1 {
+  color: #fdba74;
+  text-shadow: 0 0 18px rgba(249, 115, 22, 0.35);
+}
+
+::selection {
+  background: rgba(249, 115, 22, 0.45);
+  color: #fff;
+}
+
+/* Gentle orange glow for interactive cards. */
+.spooky-glow {
+  transition:
+    box-shadow 0.25s ease,
+    transform 0.25s ease;
+}
+.spooky-glow:hover {
+  box-shadow: 0 0 22px rgba(249, 115, 22, 0.18);
+  transform: translateY(-1px);
+}
+
+/* ---------------------------------------------------------------- animations */
+@keyframes ghost-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-3deg);
+  }
+  50% {
+    transform: translateY(-18px) rotate(3deg);
+  }
+}
+
+@keyframes ghost-drift {
+  from {
+    transform: translateX(-12vw);
+  }
+  to {
+    transform: translateX(112vw);
+  }
+}
+
+@keyframes bat-fly {
+  0% {
+    transform: translate(-10vw, 0) scale(0.9);
+  }
+  25% {
+    transform: translate(25vw, -4vh) scale(1);
+  }
+  50% {
+    transform: translate(55vw, 3vh) scale(0.85);
+  }
+  75% {
+    transform: translate(80vw, -3vh) scale(1);
+  }
+  100% {
+    transform: translate(112vw, 1vh) scale(0.9);
+  }
+}
+
+@keyframes bat-flap {
+  0%,
+  100% {
+    transform: scaleX(1);
+  }
+  50% {
+    transform: scaleX(0.55);
+  }
+}
+
+@keyframes pumpkin-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 8px rgba(249, 115, 22, 0.45);
+  }
+  50% {
+    box-shadow:
+      0 0 20px rgba(249, 115, 22, 0.85),
+      0 0 34px rgba(249, 115, 22, 0.35);
+  }
+}
+
+@keyframes fog-slide {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spooky-fall {
+  0% {
+    transform: translateY(-12vh) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(110vh) rotate(540deg);
+    opacity: 0.9;
+  }
+}
+
+@keyframes result-pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.halloween-ghost-track {
+  animation: ghost-drift linear infinite;
+}
+.halloween-bat {
+  animation: bat-fly linear infinite;
+}
+.halloween-bat > span {
+  display: inline-block;
+  animation: bat-flap 0.35s ease-in-out infinite;
+}
+.halloween-fog {
+  animation: fog-slide 60s linear infinite;
+}
+.halloween-star {
+  animation: twinkle ease-in-out infinite;
+}
+.spooky-fall {
+  animation: spooky-fall linear forwards;
+}
+.result-pop {
+  animation: result-pop 0.5s ease-out both;
+}
+
+/* Respect users who ask for less motion: keep the theme, drop the movement. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .halloween-motion {
+    display: none !important;
+  }
 }

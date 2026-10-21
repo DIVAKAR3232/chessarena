@@ -6,11 +6,13 @@ import { useAuth } from '../../features/auth/AuthContext';
 import { useAsync } from '../../hooks/useAsync';
 import { getPaged } from '../../services/api/client';
 import type { LeaderboardRow } from '../../types/api';
+import { useLiveRefresh } from '../../hooks/useLiveRefresh';
 
 export function LeaderboardPage() {
   const { user } = useAuth();
   const [page, setPage] = useState(1);
   const list = useAsync(() => getPaged<LeaderboardRow>('/leaderboard', { page, pageSize: 25 }), [page]);
+  useLiveRefresh(list.reload);
 
   return (
     <div className={cx(!user && 'mx-auto max-w-4xl px-4 py-8')}>

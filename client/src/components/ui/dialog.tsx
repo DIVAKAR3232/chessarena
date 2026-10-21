@@ -23,7 +23,7 @@ export function Dialog({ open, title, onClose, children, footer }: DialogProps) 
       ref={ref}
       onClose={onClose}
       onCancel={onClose}
-      className="m-auto w-[calc(100%-2rem)] max-w-md rounded-xl border border-stone-200 p-0 shadow-xl backdrop:bg-stone-900/40"
+      className="m-auto w-[calc(100%-2rem)] max-w-md rounded-xl border border-stone-200 p-0 shadow-xl backdrop:bg-black/70 backdrop:backdrop-blur-sm"
     >
       <div className="p-5">
         <h2 className="text-lg font-semibold text-stone-900">{title}</h2>

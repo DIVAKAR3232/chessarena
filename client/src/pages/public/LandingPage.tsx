@@ -1,4 +1,5 @@
-import { BarChart3, Clock, Crown, ShieldCheck, Swords, Trophy } from 'lucide-react';
+import { BarChart3, Clock, ShieldCheck, Swords, Trophy } from 'lucide-react';
+import { Logo } from '../../components/halloween/Logo';
 import { Link } from 'react-router';
 import { homePathFor, useAuth } from '../../features/auth/AuthContext';
 
@@ -15,12 +16,7 @@ export function LandingPage() {
   return (
     <div className="min-h-screen">
       <header className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
-        <span className="flex items-center gap-2 text-lg font-semibold">
-          <span className="flex size-9 items-center justify-center rounded-lg bg-green-800 text-white">
-            <Crown className="size-5" aria-hidden />
-          </span>
-          ChessArena
-        </span>
+        <Logo size="lg" />
         <nav className="flex items-center gap-2 text-sm">
           <Link to="/leaderboard" className="hidden rounded-lg px-3 py-2 text-stone-700 hover:bg-stone-100 sm:block">
             Leaderboard
@@ -44,10 +40,12 @@ export function LandingPage() {
 
       <section className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-12 md:grid-cols-2 md:py-20">
         <div>
-          <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-green-800">Competitive chess, organized</p>
-          <h1 className="text-4xl font-semibold tracking-tight text-stone-900 sm:text-5xl">Play, compete and climb the ladder.</h1>
+          <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-green-50 px-3 py-1 text-sm font-semibold text-green-900 ring-1 ring-green-200">
+            🎃 Halloween Arena is open
+          </p>
+          <h1 className="text-5xl tracking-tight sm:text-6xl">Play if you dare.</h1>
           <p className="mt-4 max-w-md text-lg text-stone-600">
-            Challenge friends, join coordinated tournaments, and track every rated game, all in one platform.
+            Challenge friends at midnight, survive haunted tournaments, and climb the spookiest leaderboard in town.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link to={user ? homePathFor(user) : '/register'} className="rounded-lg bg-green-800 px-5 py-2.5 font-medium text-white hover:bg-green-900">
@@ -58,10 +56,15 @@ export function LandingPage() {
             </Link>
           </div>
         </div>
-        <div aria-hidden className="mx-auto grid aspect-square w-full max-w-sm grid-cols-8 overflow-hidden rounded-xl shadow-lg ring-1 ring-stone-300">
-          {Array.from({ length: 64 }, (_, i) => (
-            <div key={i} className={(Math.floor(i / 8) + i) % 2 === 0 ? 'bg-[#eeeed2]' : 'bg-[#769656]'} />
-          ))}
+        <div aria-hidden className="relative mx-auto w-full max-w-sm">
+          <div className="grid aspect-square w-full grid-cols-8 overflow-hidden rounded-xl shadow-[0_0_60px_rgba(249,115,22,0.25)] ring-1 ring-orange-500/30">
+            {Array.from({ length: 64 }, (_, i) => (
+              <div key={i} className={(Math.floor(i / 8) + i) % 2 === 0 ? 'bg-[#f2c48d]' : 'bg-[#6b3fa0]'} />
+            ))}
+          </div>
+          <span className="absolute -top-8 -left-6 animate-float text-6xl drop-shadow-[0_0_14px_rgba(255,255,255,0.35)]">👻</span>
+          <span className="absolute -right-5 -bottom-6 animate-float text-6xl drop-shadow-[0_0_18px_rgba(249,115,22,0.6)] [animation-delay:1.5s]">🎃</span>
+          <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-8xl text-[#1b1129] opacity-90 drop-shadow-[0_0_12px_rgba(249,115,22,0.5)]">♞</span>
         </div>
       </section>
 

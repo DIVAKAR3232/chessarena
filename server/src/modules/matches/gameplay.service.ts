@@ -16,7 +16,7 @@ import { audit } from '../audit/audit.service.js';
 import { GameEngine, IllegalMoveError, opposite, type Color, type MoveInput } from '../chess/engine.js';
 import { notify } from '../notifications/notification.service.js';
 import { applyRatings } from '../ratings/rating.service.js';
-import { emitToMatch, emitToUser } from '../realtime/emitter.js';
+import { announceLeaderboardChange, emitToMatch, emitToUser } from '../realtime/emitter.js';
 import { anchorTurn, clearAnchor, elapsedInTurn } from './clock.js';
 import { runFinalizeHooks } from './hooks.js';
 import { assertTransition } from './lifecycle.js';
@@ -247,6 +247,7 @@ async function finalize(ctx: TxContext, outcome: Outcome): Promise<boolean> {
     for (const cb of hookCallbacks) cb();
     logger.info({ matchId: match.id, result: outcome.result, reason: outcome.reason }, 'Match finalized');
     void broadcastState(match.id, 'match:result', { ratingChange });
+    announceLeaderboardChange();
   });
   return true;
 }

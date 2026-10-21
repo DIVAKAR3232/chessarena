@@ -7,6 +7,7 @@ import { useToast } from '../../components/ui/toast';
 import { useAuth } from '../../features/auth/AuthContext';
 import { capturedPieces } from '../../features/chess/captured';
 import { ChessBoardView } from '../../features/chess/ChessBoardView';
+import { GameOverEffect } from '../../components/halloween/GameOverEffect';
 import { Clock } from '../../features/chess/Clock';
 import { MoveList } from '../../features/chess/MoveList';
 import { useMatch } from '../../features/chess/useMatch';
@@ -105,6 +106,7 @@ export function GamePage() {
   const toast = useToast();
   const m = useMatch(id);
   const [confirm, setConfirm] = useState<null | 'resign' | 'cancel' | 'dispute'>(null);
+  const [gameOverTrigger, setGameOverTrigger] = useState(0);
   const s = m.state;
 
   const myColor: 'w' | 'b' | null = s && user ? (s.white?.id === user.id ? 'w' : s.black?.id === user.id ? 'b' : null) : null;
@@ -119,6 +121,7 @@ export function GamePage() {
     if (!e || !user) return;
     if (e.type === 'draw-offered' && (e.payload as { offeredBy: string }).offeredBy !== user.id) toast.info('Your opponent offers a draw.');
     if (e.type === 'draw-declined' && (e.payload as { declinedBy: string }).declinedBy !== user.id) toast.info('Draw offer declined.');
+    if (e.type === 'result') setGameOverTrigger(e.at);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [m.lastEvent]);
 
@@ -148,6 +151,17 @@ export function GamePage() {
   );
 
   const opponentOffer = s.drawOffer && s.drawOffer.offeredBy !== user?.id;
+  const headline = !s.result || s.result === 'NO_RESULT'
+    ? 'Game over'
+    : s.result === 'DRAW'
+      ? 'A ghostly draw 👻'
+      : myColor
+        ? (s.result === 'WHITE_WIN') === (myColor === 'w')
+          ? 'Victory! 🎃'
+          : 'You were haunted 💀'
+        : s.result === 'WHITE_WIN'
+          ? 'White wins! 🎃'
+          : 'Black wins! 🦇';
   const myOffer = s.drawOffer && s.drawOffer.offeredBy === user?.id;
   const finished = ['COMPLETED', 'ABANDONED', 'DISPUTED', 'CANCELLED'].includes(s.status);
   const canCancel = ['CREATED', 'WAITING', 'READY'].includes(s.status) && !s.tournament && (s.createdById === user?.id || myColor);
@@ -160,6 +174,7 @@ export function GamePage() {
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <GameOverEffect trigger={gameOverTrigger} headline={headline} />
       <div className="mx-auto w-full max-w-[min(100%,78vh)] space-y-2">
         {bar(top)}
         <ChessBoardView

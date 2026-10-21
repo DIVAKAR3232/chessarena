@@ -1,5 +1,5 @@
 import { Chess, type Square } from 'chess.js';
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Chessboard, type PieceDropHandlerArgs, type SquareHandlerArgs } from 'react-chessboard';
 import { Dialog } from '../../components/ui/dialog';
 
@@ -21,8 +21,8 @@ interface Props {
   onMove?: (from: string, to: string, promotion?: Promotion) => Promise<boolean>;
 }
 
-const LIGHT = '#eeeed2';
-const DARK = '#769656';
+const LIGHT = '#f2c48d';
+const DARK = '#6b3fa0';
 
 /**
  * Board UI. chess.js here is only used to show legal-move hints and an optimistic position; the
@@ -33,6 +33,10 @@ export function ChessBoardView({ fen, orientation, myColor, canMove, lastMove, o
   const [selected, setSelected] = useState<string | null>(null);
   const [pendingPromotion, setPendingPromotion] = useState<{ from: string; to: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Latest authoritative position (rollback target if the server rejects a move).
+  const latestFen = useRef(fen);
+  latestFen.current = fen;
 
   // Any new authoritative position replaces the optimistic one.
   useEffect(() => {
@@ -78,7 +82,7 @@ export function ChessBoardView({ fen, orientation, myColor, canMove, lastMove, o
     setSubmitting(true);
     const ok = await onMove(from, to, promotion);
     setSubmitting(false);
-    if (!ok) setDisplayFen(fen);
+    if (!ok) setDisplayFen(latestFen.current);
     return true;
   }
 
@@ -141,7 +145,7 @@ export function ChessBoardView({ fen, orientation, myColor, canMove, lastMove, o
           squareStyles,
           lightSquareStyle: { backgroundColor: LIGHT },
           darkSquareStyle: { backgroundColor: DARK },
-          boardStyle: { borderRadius: '0.5rem', overflow: 'hidden', boxShadow: '0 4px 14px rgba(0,0,0,0.15)' },
+          boardStyle: { borderRadius: '0.5rem', overflow: 'hidden', boxShadow: '0 0 40px rgba(249, 115, 22, 0.22), 0 8px 24px rgba(0,0,0,0.5)' },
           animationDurationInMs: 180,
           allowDrawingArrows: true,
         }}

@@ -1,6 +1,5 @@
 import {
   BarChart3,
-  Crown,
   FileClock,
   Gavel,
   History,
@@ -15,7 +14,8 @@ import {
   X,
 } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
-import { Link, NavLink, Outlet, useNavigate } from 'react-router';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
+import { Logo } from '../halloween/Logo';
 import { useAuth } from '../../features/auth/AuthContext';
 import { useConnectionStatus } from '../../hooks/useSocket';
 import type { Role } from '../../types/api';
@@ -75,6 +75,7 @@ function ConnectionDot() {
 export function AppShell() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [open, setOpen] = useState(false);
   if (!user) return null;
   const items = NAV[user.role];
@@ -104,16 +105,13 @@ export function AppShell() {
 
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-30 border-b border-stone-200 bg-white/90 backdrop-blur">
+      <header className="sticky top-0 z-30 border-b border-stone-200 bg-white/80 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4">
           <button className="rounded-lg p-2 text-stone-600 hover:bg-stone-100 lg:hidden" onClick={() => setOpen((o) => !o)} aria-label="Toggle navigation">
             {open ? <X className="size-5" /> : <Menu className="size-5" />}
           </button>
-          <Link to="/" className="flex items-center gap-2 font-semibold text-stone-900">
-            <span className="flex size-8 items-center justify-center rounded-lg bg-green-800 text-white">
-              <Crown className="size-4" aria-hidden />
-            </span>
-            ChessArena
+          <Link to="/" className="shrink-0" aria-label="ChessArena home">
+            <Logo size="sm" />
           </Link>
           <nav className="hidden flex-1 lg:block" aria-label="Main">
             {links}
@@ -145,7 +143,7 @@ export function AppShell() {
           </nav>
         )}
       </header>
-      <main className="mx-auto max-w-7xl px-4 py-6">
+      <main key={location.pathname} className="mx-auto max-w-7xl animate-page-in px-4 py-6">
         <Outlet />
       </main>
     </div>

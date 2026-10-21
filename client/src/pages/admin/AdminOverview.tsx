@@ -3,6 +3,7 @@ import { Card, ErrorState, PageHeader, Spinner, StatCard } from '../../component
 import { useAsync } from '../../hooks/useAsync';
 import { get } from '../../services/api/client';
 import { humanize, relativeTime } from '../../utils/format';
+import { useLiveRefresh } from '../../hooks/useLiveRefresh';
 
 interface Overview {
   users: { players: number; coordinators: number; admins: number; suspended: number; disabled: number };
@@ -37,6 +38,7 @@ function GamesPerDay({ data }: { data: { date: string; games: number }[] }) {
 
 export function AdminOverview() {
   const o = useAsync(() => get<Overview>('/admin/overview'), []);
+  useLiveRefresh(o.reload);
   if (o.loading && !o.data) return <Spinner />;
   if (o.error || !o.data) return <ErrorState message={o.error ?? 'Failed'} onRetry={o.reload} />;
   const d = o.data;

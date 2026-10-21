@@ -13,6 +13,7 @@ import { canSuperviseMatch, isParticipant, type Actor } from '../../policies/ind
 import { audit } from '../audit/audit.service.js';
 import { assertTransition } from '../matches/lifecycle.js';
 import { notify } from '../notifications/notification.service.js';
+import { announceLeaderboardChange } from '../realtime/emitter.js';
 import { applyRatings, reverseRatings } from '../ratings/rating.service.js';
 import { recomputeWinner } from '../tournaments/tournament.service.js';
 
@@ -175,6 +176,7 @@ export async function resolveDispute(
     return { publish, dispute: updated };
   });
   publish();
+  announceLeaderboardChange();
   return dispute;
 }
 

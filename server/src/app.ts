@@ -76,7 +76,7 @@ export function createApp() {
 
   app.use(healthRouter);
 
-  app.use('/api/v1', apiLimiter, authenticate, csrfProtection, maintenanceGuard, apiRouter);
+  app.use('/api/v1', noStore, apiLimiter, authenticate, csrfProtection, maintenanceGuard, apiRouter);
 
   if (env.SERVE_CLIENT) serveClient(app);
 
@@ -105,6 +105,12 @@ function serveClient(app: express.Express) {
     res.sendFile(index);
   });
   logger.info({ dist }, 'Serving the web client');
+}
+
+/** API data is live (ratings, games, notifications): never let browsers or proxies cache it. */
+function noStore(_req: Request, res: Response, next: NextFunction) {
+  res.setHeader('Cache-Control', 'no-store');
+  next();
 }
 
 /** When maintenance mode is on, only admins (and auth/settings endpoints) remain usable. */

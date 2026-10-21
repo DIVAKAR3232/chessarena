@@ -32,50 +32,50 @@ export function AdminLoginPage() {
   });
 
   const field =
-    'block w-full rounded-lg border border-stone-600 bg-stone-800 px-3 py-2 text-sm text-white outline-none placeholder:text-stone-500 focus:border-green-500 focus:ring-2 focus:ring-green-900';
+    'block w-full rounded-lg border border-stone-300 bg-stone-100 px-3 py-2 text-sm text-stone-900 outline-none placeholder:text-stone-500 focus:border-green-700 focus:ring-2 focus:ring-green-200';
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-stone-950 px-4 py-10">
-      <div className="mb-6 flex items-center gap-3 text-white">
-        <span className="flex size-10 items-center justify-center rounded-lg bg-green-700">
+    <div className="flex min-h-screen flex-col items-center justify-center px-4 py-10">
+      <div className="mb-6 flex items-center gap-3 text-stone-900">
+        <span className="flex size-10 items-center justify-center rounded-lg bg-green-800 text-white animate-glow">
           <ShieldCheck className="size-5" aria-hidden />
         </span>
         <div>
-          <p className="text-lg font-semibold">ChessArena Admin</p>
-          <p className="text-xs text-stone-400">Restricted area: administrators only</p>
+          <p className="font-spooky text-2xl text-[#fdba74]">ChessArena Admin</p>
+          <p className="text-xs text-stone-500">Restricted area: administrators only</p>
         </div>
       </div>
-      <form onSubmit={onSubmit} noValidate className="w-full max-w-sm space-y-4 rounded-xl border border-stone-800 bg-stone-900 p-6 shadow-xl">
+      <form onSubmit={onSubmit} noValidate className="w-full max-w-sm space-y-4 rounded-xl border border-stone-200 bg-white/90 p-6 shadow-[0_0_40px_rgba(249,115,22,0.15)] backdrop-blur">
         {error && (
-          <p role="alert" className="rounded-lg border border-red-900 bg-red-950 px-3 py-2 text-sm text-red-200">
+          <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
             {error}
           </p>
         )}
         <div>
-          <label htmlFor="admin-id" className="mb-1 block text-sm font-medium text-stone-300">
+          <label htmlFor="admin-id" className="mb-1 block text-sm font-medium text-stone-700">
             Admin username
           </label>
           <input id="admin-id" autoComplete="username" className={field} {...register('identifier')} />
-          {formState.errors.identifier && <p className="mt-1 text-xs text-red-300">{formState.errors.identifier.message}</p>}
+          {formState.errors.identifier && <p className="mt-1 text-xs text-red-700">{formState.errors.identifier.message}</p>}
         </div>
         <div>
-          <label htmlFor="admin-pw" className="mb-1 block text-sm font-medium text-stone-300">
+          <label htmlFor="admin-pw" className="mb-1 block text-sm font-medium text-stone-700">
             Password
           </label>
           <input id="admin-pw" type="password" autoComplete="current-password" className={field} {...register('password')} />
-          {formState.errors.password && <p className="mt-1 text-xs text-red-300">{formState.errors.password.message}</p>}
+          {formState.errors.password && <p className="mt-1 text-xs text-red-700">{formState.errors.password.message}</p>}
         </div>
         <button
           type="submit"
           disabled={formState.isSubmitting}
-          className="w-full rounded-lg bg-green-700 px-4 py-2 text-sm font-medium text-white hover:bg-green-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500 disabled:opacity-50"
+          className="w-full rounded-lg bg-green-800 px-4 py-2 text-sm font-medium text-white hover:bg-green-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500 disabled:opacity-50"
         >
           {formState.isSubmitting ? 'Signing in…' : 'Sign in to admin portal'}
         </button>
       </form>
       <p className="mt-4 text-sm text-stone-500">
         Not an administrator?{' '}
-        <Link to="/login" className="text-stone-300 hover:underline">
+        <Link to="/login" className="text-stone-700 hover:underline">
           Player sign-in
         </Link>
       </p>

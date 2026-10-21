@@ -8,6 +8,7 @@ import { useSocketEvent } from '../../hooks/useSocket';
 import { get } from '../../services/api/client';
 import type { Invitation, MatchListItem, Me, PlayerStats } from '../../types/api';
 import { humanize } from '../../utils/format';
+import { useLiveRefresh } from '../../hooks/useLiveRefresh';
 
 interface Dashboard {
   profile: Me;
@@ -33,7 +34,7 @@ function RatingSparkline({ points }: { points: number[] }) {
   return (
     <figure>
       <svg viewBox={`0 0 ${w} ${h}`} className="h-20 w-full" role="img" aria-label={`Rating from ${points[0]} to ${points[points.length - 1]}`}>
-        <path d={d} fill="none" stroke="#166534" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+        <path d={d} fill="none" stroke="#f97316" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
       </svg>
       <figcaption className="flex justify-between text-xs text-stone-500 tabular-nums">
         <span>low {min}</span>
@@ -46,6 +47,7 @@ function RatingSparkline({ points }: { points: number[] }) {
 export function PlayerDashboard() {
   const { user } = useAuth();
   const dash = useAsync(() => get<Dashboard>('/players/me/dashboard'), []);
+  useLiveRefresh(dash.reload);
   useSocketEvent('notification:new', () => void dash.reload());
 
   if (dash.loading && !dash.data) return <Spinner />;

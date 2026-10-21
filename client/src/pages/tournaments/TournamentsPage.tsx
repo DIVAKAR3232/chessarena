@@ -50,7 +50,7 @@ export function TournamentsPage({ scope = 'all', title = 'Tournaments', base = '
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {list.data!.data.map((t) => (
               <li key={t.id}>
-                <Link to={`${base}/${t.id}`} className="block h-full rounded-xl border border-stone-200 bg-white p-4 shadow-xs transition hover:border-green-700">
+                <Link to={`${base}/${t.id}`} className="spooky-glow block h-full rounded-xl border border-stone-200 bg-white p-4 shadow-xs transition hover:border-green-700">
                   <div className="flex items-start justify-between gap-2">
                     <h2 className="font-semibold text-stone-900">{t.name}</h2>
                     <Badge tone={tournamentTone(t.status)}>{humanize(t.status)}</Badge>
