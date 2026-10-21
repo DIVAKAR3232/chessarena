@@ -42,7 +42,7 @@ export function AdminLoginPage() {
         </span>
         <div>
           <p className="font-spooky text-2xl text-[#fdba74]">ChessArena Admin</p>
-          <p className="text-xs text-stone-500">Restricted area: administrators only</p>
+          <p className="text-xs text-stone-500">ISTA presents ChessArena for i++'26 · administrators only</p>
         </div>
       </div>
       <form onSubmit={onSubmit} noValidate className="w-full max-w-sm space-y-4 rounded-xl border border-stone-200 bg-white/90 p-6 shadow-[0_0_40px_rgba(249,115,22,0.15)] backdrop-blur">

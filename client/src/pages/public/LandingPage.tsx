@@ -1,5 +1,5 @@
 import { BarChart3, Clock, ShieldCheck, Swords, Trophy } from 'lucide-react';
-import { Logo } from '../../components/halloween/Logo';
+import { EVENT_NAME, Logo, PRESENTER } from '../../components/halloween/Logo';
 import { Link } from 'react-router';
 import { homePathFor, useAuth } from '../../features/auth/AuthContext';
 
@@ -16,7 +16,7 @@ export function LandingPage() {
   return (
     <div className="min-h-screen">
       <header className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
-        <Logo size="lg" />
+        <Logo size="md" />
         <nav className="flex items-center gap-2 text-sm">
           <Link to="/leaderboard" className="hidden rounded-lg px-3 py-2 text-stone-700 hover:bg-stone-100 sm:block">
             Leaderboard
@@ -40,10 +40,12 @@ export function LandingPage() {
 
       <section className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-12 md:grid-cols-2 md:py-20">
         <div>
-          <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-green-50 px-3 py-1 text-sm font-semibold text-green-900 ring-1 ring-green-200">
-            🎃 Halloween Arena is open
+          <p className="mb-2 text-sm font-semibold uppercase tracking-[0.3em] text-stone-500">{PRESENTER} presents</p>
+          <p className="font-spooky text-5xl leading-none text-[#fdba74] [text-shadow:0_0_24px_rgba(249,115,22,0.55)] sm:text-6xl">ChessArena</p>
+          <p className="mt-3 mb-6 inline-flex items-center gap-2 rounded-full bg-green-50 px-3 py-1 text-sm font-semibold text-green-900 ring-1 ring-green-200">
+            🎃 for <span className="font-mono">{EVENT_NAME}</span>
           </p>
-          <h1 className="text-5xl tracking-tight sm:text-6xl">Play if you dare.</h1>
+          <h1 className="text-4xl tracking-tight sm:text-5xl">Play if you dare.</h1>
           <p className="mt-4 max-w-md text-lg text-stone-600">
             Challenge friends at midnight, survive haunted tournaments, and climb the spookiest leaderboard in town.
           </p>
@@ -79,6 +81,11 @@ export function LandingPage() {
           ))}
         </ul>
       </section>
+
+      <footer className="border-t border-stone-200 py-6 text-center text-sm text-stone-500">
+        {PRESENTER} presents <span className="font-spooky text-base text-[#fdba74]">ChessArena</span> for{' '}
+        <span className="font-mono text-stone-700">{EVENT_NAME}</span> 👻
+      </footer>
     </div>
   );
 }
