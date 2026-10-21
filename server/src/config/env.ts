@@ -34,11 +34,22 @@ const schema = z.object({
   TRUST_PROXY: z.coerce.number().int().min(0).max(10).default(0),
   RECONNECT_GRACE_MS: z.coerce.number().int().min(1000).max(600000).default(60000),
   INVITATION_TTL_MINUTES: z.coerce.number().int().min(1).max(10080).default(60),
+  // ---- Email (password resets, verification) ----
+  /** Sender shown to recipients, e.g. "ISTA ChessArena <someone@gmail.com>". */
+  MAIL_FROM: z.string().optional(),
+  /** Brevo HTTP API key (works on hosts that block SMTP, e.g. Render's free plan). Preferred when set. */
+  BREVO_API_KEY: z.string().optional(),
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().int().positive().default(587),
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
-  SMTP_FROM: z.string().default('ChessArena <no-reply@example.com>'),
+  /** Legacy name for MAIL_FROM. */
+  SMTP_FROM: z.string().optional(),
+  /** Require new players to verify their email before signing in (needs working email). */
+  REQUIRE_EMAIL_VERIFICATION: z
+    .enum(['true', 'false', '1', '0', ''])
+    .optional()
+    .transform((v) => v === 'true' || v === '1'),
 });
 
 // On Render the public URL is provided automatically; use it unless configured explicitly.

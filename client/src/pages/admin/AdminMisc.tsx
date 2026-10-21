@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { Link, useNavigate } from 'react-router';
 import { CreateRoomDialog } from './CreateRoomDialog';
+import { EmailSettingsCard } from './EmailSettingsCard';
 import { DataTable } from '../../components/tables/DataTable';
 import { Badge, Button, Card, ErrorState, Input, PageHeader, Select, Spinner } from '../../components/ui';
 import { Dialog } from '../../components/ui/dialog';
@@ -295,6 +296,9 @@ export function AdminSettings() {
   return (
     <div className="max-w-2xl">
       <PageHeader title="System settings" description="Non-secret platform configuration. Secrets live only in server environment variables." />
+      <div className="mb-6">
+        <EmailSettingsCard />
+      </div>
       <form
         className="space-y-6"
         onSubmit={async (e) => {

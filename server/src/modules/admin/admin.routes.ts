@@ -8,6 +8,11 @@ import { listDisputes, listDisputesQuery, resolveDispute, resolveDisputeSchema }
 import { createAssignedMatchSchema, listMatchesQuery } from '../matches/match.schemas.js';
 import { createAssignedMatch, listMatches } from '../matches/match.service.js';
 import { settingsSchema, getSettings, updateSettings } from '../settings/settings.service.js';
+import { env } from '../../config/env.js';
+import { AppError } from '../../lib/errors.js';
+import { sensitiveLimiter } from '../../middleware/rateLimit.js';
+import { mailFrom, mailProvider, renderEmail, sendMail } from '../../services/mail.js';
+import { audit } from '../audit/audit.service.js';
 import * as admin from './admin.service.js';
 
 export const adminRouter = Router();
@@ -86,8 +91,39 @@ adminRouter.patch('/users/:id/status', async (req, res) => {
 });
 
 adminRouter.post('/users/:id/password-reset', async (req, res) => {
-  await admin.initiatePasswordReset(getAuth(req).user, idParam(req.params));
-  res.json({ data: { ok: true } });
+  const result = await admin.initiatePasswordReset(getAuth(req).user, idParam(req.params));
+  res.json({ data: { ok: true, ...result } });
+});
+
+/** Which email provider is active (no secrets returned). */
+adminRouter.get('/email/status', (_req, res) => {
+  const provider = mailProvider();
+  res.json({
+    data: {
+      provider,
+      configured: provider !== 'none',
+      from: mailFrom().formatted,
+      smtpHost: provider === 'smtp' ? env.SMTP_HOST : null,
+      verificationRequired: env.REQUIRE_EMAIL_VERIFICATION && provider !== 'none',
+    },
+  });
+});
+
+/** Sends a test email so the admin can confirm delivery works end to end. */
+adminRouter.post('/email/test', sensitiveLimiter, async (req, res) => {
+  const { to } = validate(z.object({ to: emailSchema }).strict(), req.body);
+  const result = await sendMail({
+    to,
+    subject: 'ChessArena test email',
+    text: `This is a test email from ChessArena.\n\nIf you can read this, password-reset emails will be delivered.\n\nISTA presents ChessArena for i++'26`,
+    html: renderEmail({
+      heading: 'Your email setup works 🎃',
+      paragraphs: ['This is a test email from the ChessArena admin portal.', 'If you can read this, password-reset emails will be delivered.'],
+    }),
+  });
+  await audit({ actorId: getAuth(req).user.id, action: 'admin.email_test', resourceType: 'settings', details: { ok: result.ok, provider: result.provider } });
+  if (!result.ok) throw new AppError('BAD_REQUEST', `Sending failed (${result.provider}): ${result.error}`);
+  res.json({ data: { ok: true, provider: result.provider } });
 });
 
 adminRouter.get('/matches', async (req, res) => {

@@ -44,5 +44,11 @@ services:
         sync: false
       - key: ADMIN_PASSWORD
         sync: false
+      # Password-reset emails are sent from this address.
+      - key: MAIL_FROM
+        value: ISTA ChessArena <rangasamymeena945@gmail.com>
+      # Render's free plan blocks SMTP, so add BREVO_API_KEY in the dashboard (Environment tab).
+      # On a paid instance you can instead use Gmail SMTP: SMTP_HOST=smtp.gmail.com, SMTP_PORT=587,
+      # SMTP_USER=rangasamymeena945@gmail.com, SMTP_PASS=<Gmail App Password>. See docs/DEPLOYMENT.md.
       # CLIENT_ORIGIN / APP_URL default to Render's public URL automatically. Set them only
       # when you add a custom domain (e.g. https://chess.example.com).

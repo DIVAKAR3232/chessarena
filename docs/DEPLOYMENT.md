@@ -88,12 +88,57 @@ CLIENT_ORIGIN=https://chess.example.com
 APP_URL=https://chess.example.com
 ```
 
-## Email for password resets (optional)
+## Password-reset emails
 
-Without email settings, password-reset emails are not sent, and an admin cannot email a reset
-link. To enable them, add your provider's SMTP values in **Environment**: `SMTP_HOST`,
-`SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` and `SMTP_FROM`. Once email is configured, new players
-must also verify their address.
+Emails are sent from **rangasamymeena945@gmail.com** (`MAIL_FROM` in `render.yaml`). The server
+also needs one sending provider. Without one, "Forgot password" shows its usual message but no
+email is sent.
+
+> **Render free plan blocks SMTP**, which is how Gmail sends mail, so on the free plan use
+> **Option B (Brevo)**. Option A (Gmail SMTP) works on your own PC and on paid Render instances.
+
+### Option A: Gmail App Password (your PC, or a paid Render instance)
+
+1. Sign in to Google as **rangasamymeena945@gmail.com**.
+2. Turn on **2-Step Verification**: https://myaccount.google.com/signinoptions/two-step-verification
+3. Create an **App password**: https://myaccount.google.com/apppasswords. Name it `ChessArena` and
+   copy the 16-character password. This is *not* your normal Gmail password, and you can revoke
+   it anytime.
+4. **On your PC:** open `server/.env` and paste it after `SMTP_PASS=` (no spaces), then restart
+   the app. `SMTP_HOST`, `SMTP_PORT` and `SMTP_USER` are already filled in.
+5. **On a paid Render instance:** service → **Environment** → add `SMTP_HOST=smtp.gmail.com`,
+   `SMTP_PORT=587`, `SMTP_USER=rangasamymeena945@gmail.com` and `SMTP_PASS=<the app password>` →
+   **Save changes**.
+
+### Option B: Brevo (works on Render's free plan)
+
+1. Create a free account at https://www.brevo.com (300 emails/day free).
+2. **Senders, Domains & Dedicated IPs → Senders → Add a sender:** enter
+   `rangasamymeena945@gmail.com` and confirm the verification email Brevo sends to that inbox.
+3. **SMTP & API → API Keys → Generate a new API key**, then copy it.
+4. Render service → **Environment** → add `BREVO_API_KEY=<the key>` → **Save changes**. Render
+   restarts the service.
+
+When `BREVO_API_KEY` is set it is used instead of SMTP.
+
+### Check that it works
+
+1. Sign in at `/admin/login` → **Settings**. The **Email** card shows the active provider.
+2. Enter your own address under **Send a test email** and click **Send test**. The card shows
+   exactly why a send failed (wrong app password, unverified Brevo sender, and so on).
+3. Try the real flow: `/login` → **Forgot password?** → enter a player's email → open the email →
+   **Choose a new password**.
+
+Notes:
+
+- Reset links are single-use and expire after 30 minutes. Using one signs the player out
+  everywhere.
+- Mail sent "from" a Gmail address through Brevo may land in **Spam** at first. Ask players to
+  check there and mark it "Not spam".
+- Admins can also send a reset link from **Users → (user) → Send password reset**. It reports
+  whether the email went out.
+- To make new players confirm their email before they can sign in, set
+  `REQUIRE_EMAIL_VERIFICATION=true` (only once email delivery works).
 
 ---
 

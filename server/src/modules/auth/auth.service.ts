@@ -4,7 +4,7 @@ import { logger } from '../../config/logger.js';
 import { randomToken, sha256 } from '../../lib/crypto.js';
 import { AppError, conflict, forbidden, unauthenticated } from '../../lib/errors.js';
 import { prisma, type Tx } from '../../lib/prisma.js';
-import { emailConfigured, sendMail } from '../../services/mail.js';
+import { emailConfigured, queueMail, renderEmail, sendMail, type MailMessage, type MailResult } from '../../services/mail.js';
 import { audit } from '../audit/audit.service.js';
 import { getSettings } from '../settings/settings.service.js';
 import { privateUserSelect } from '../users/user.mapper.js';
@@ -56,7 +56,7 @@ export async function register(
   }
 
   const passwordHash = await hashPassword(input.password);
-  const verificationRequired = emailConfigured();
+  const verificationRequired = env.REQUIRE_EMAIL_VERIFICATION && emailConfigured();
 
   // Role is never taken from input: every self-registered account is a PLAYER.
   const { user, session } = await prisma.$transaction(async (tx) => {
@@ -106,7 +106,7 @@ export async function login(
     logger.warn({ userId: user.id }, 'Login attempt on inactive account');
     throw forbidden('This account is not active. Contact an administrator.');
   }
-  if (emailConfigured() && !user.emailVerifiedAt) {
+  if (env.REQUIRE_EMAIL_VERIFICATION && emailConfigured() && !user.emailVerifiedAt) {
     throw forbidden('Please verify your email address before signing in.');
   }
 
@@ -169,18 +169,40 @@ async function issueToken(userId: string, purpose: TokenPurpose, ttlMs: number, 
   return token;
 }
 
-/** Always resolves (no account enumeration). */
-export async function forgotPassword(email: string, initiatedById?: string) {
-  const user = await prisma.user.findUnique({ where: { email }, select: { id: true, email: true, accountStatus: true } });
-  if (!user || user.accountStatus === 'DISABLED') return;
+function resetEmail(to: string, displayName: string, link: string, byAdmin: boolean): MailMessage {
+  const intro = byAdmin
+    ? 'An administrator started a password reset for your ChessArena account.'
+    : 'Someone (hopefully you) asked to reset the password for your ChessArena account.';
+  return {
+    to,
+    subject: 'Reset your ChessArena password',
+    text: `Hi ${displayName},\n\n${intro}\n\nOpen this link within 30 minutes to choose a new password:\n${link}\n\nThe link works once. If you did not request this, ignore this email; your password stays the same.\n\nISTA presents ChessArena for i++'26`,
+    html: renderEmail({
+      heading: `Hi ${displayName}, let's reset your password`,
+      paragraphs: [intro, 'The button below works once and expires in 30 minutes.'],
+      button: { label: 'Choose a new password', url: link },
+      footnote: 'If you did not request this, ignore this email; your password stays the same.',
+    }),
+    devLink: link,
+  };
+}
+
+/**
+ * Starts a password reset. Public requests always look successful (no account enumeration) and
+ * send in the background; admin-initiated resets wait for the send and report the outcome.
+ */
+export async function forgotPassword(email: string, initiatedById?: string): Promise<MailResult | null> {
+  const user = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true, email: true, displayName: true, accountStatus: true },
+  });
+  if (!user || user.accountStatus === 'DISABLED') return null;
   const token = await issueToken(user.id, 'RESET_PASSWORD', RESET_TOKEN_TTL_MS, initiatedById);
   const link = `${env.APP_URL}/reset-password?token=${encodeURIComponent(token)}`;
-  await sendMail({
-    to: user.email,
-    subject: 'Reset your ChessArena password',
-    text: `A password reset was requested for your ChessArena account.\n\nOpen this link within 30 minutes to choose a new password:\n${link}\n\nIf you did not request this, you can ignore this email.`,
-    devLink: link,
-  });
+  const msg = resetEmail(user.email, user.displayName, link, Boolean(initiatedById));
+  if (initiatedById) return sendMail(msg);
+  queueMail(msg);
+  return null;
 }
 
 export async function resetPassword(token: string, password: string) {
@@ -196,7 +218,9 @@ export async function resetPassword(token: string, password: string) {
       data: { usedAt: new Date() },
     });
     if (claimed.count !== 1) throw new AppError('BAD_REQUEST', 'This reset link is invalid or has expired');
-    await tx.user.update({ where: { id: record.userId }, data: { passwordHash } });
+    const u = await tx.user.findUniqueOrThrow({ where: { id: record.userId }, select: { emailVerifiedAt: true } });
+    // Using a link sent to the address proves the user controls it.
+    await tx.user.update({ where: { id: record.userId }, data: { passwordHash, ...(u.emailVerifiedAt ? {} : { emailVerifiedAt: new Date() }) } });
     await revokeAllSessions(record.userId, tx);
     await audit({ actorId: record.userId, action: 'auth.password_reset', resourceType: 'user', resourceId: record.userId }, tx);
   });
@@ -205,10 +229,15 @@ export async function resetPassword(token: string, password: string) {
 export async function sendVerificationEmail(userId: string, email: string) {
   const token = await issueToken(userId, 'VERIFY_EMAIL', VERIFY_TOKEN_TTL_MS);
   const link = `${env.APP_URL}/verify-email?token=${encodeURIComponent(token)}`;
-  await sendMail({
+  queueMail({
     to: email,
     subject: 'Verify your ChessArena email address',
-    text: `Welcome to ChessArena!\n\nConfirm your email address by opening this link within 24 hours:\n${link}`,
+    text: `Welcome to ChessArena!\n\nConfirm your email address by opening this link within 24 hours:\n${link}\n\nISTA presents ChessArena for i++'26`,
+    html: renderEmail({
+      heading: 'Welcome to ChessArena!',
+      paragraphs: ['Confirm your email address to finish creating your account. The link expires in 24 hours.'],
+      button: { label: 'Verify my email', url: link },
+    }),
     devLink: link,
   });
 }

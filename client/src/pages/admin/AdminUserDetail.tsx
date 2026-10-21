@@ -191,7 +191,7 @@ export function AdminUserDetail() {
         title="Send password reset?"
         message={`A single-use reset link (valid 30 minutes) will be emailed to ${user.email}. Administrators never see passwords.`}
         onClose={() => setPending(null)}
-        onConfirm={() => run(() => post(`/admin/users/${id}/password-reset`), 'Reset link sent')}
+        onConfirm={() => run(() => post(`/admin/users/${id}/password-reset`), `Reset link emailed to ${user.email}`)}
       />
     </div>
   );

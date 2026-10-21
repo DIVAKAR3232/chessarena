@@ -1,5 +1,5 @@
 import type { AccountStatus, Prisma, Role } from '@prisma/client';
-import { badRequest, conflict, forbidden, notFound } from '../../lib/errors.js';
+import { AppError, badRequest, conflict, forbidden, notFound } from '../../lib/errors.js';
 import { pageMeta, toSkipTake, type Pagination } from '../../lib/pagination.js';
 import { advisoryLock, prisma, type Tx } from '../../lib/prisma.js';
 import type { Actor } from '../../policies/index.js';
@@ -269,10 +269,21 @@ export async function changeStatus(admin: Actor, userId: string, status: Account
 
 /** Sends the user a reset link; admins never see or set passwords. */
 export async function initiatePasswordReset(admin: Actor, userId: string) {
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true, accountStatus: true } });
   if (!user) throw notFound('User');
-  await forgotPassword(user.email, admin.id);
-  await audit({ actorId: admin.id, action: 'admin.password_reset', resourceType: 'user', resourceId: userId });
+  if (user.accountStatus === 'DISABLED') throw badRequest('This account is disabled; reactivate it before resetting the password');
+  const result = await forgotPassword(user.email, admin.id);
+  await audit({
+    actorId: admin.id,
+    action: 'admin.password_reset',
+    resourceType: 'user',
+    resourceId: userId,
+    details: { emailSent: Boolean(result?.ok), provider: result?.provider ?? null },
+  });
+  if (result && !result.ok) {
+    throw new AppError('BAD_REQUEST', `The reset link was created but the email could not be sent: ${result.error}`);
+  }
+  return { sentTo: user.email };
 }
 
 export interface AuditQuery {
